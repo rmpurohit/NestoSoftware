@@ -1,0 +1,65 @@
+@host = http://localhost:3000
+@json = application/json
+
+###
+# Aufgabe 1 — List stores
+GET {{host}}/api/stores
+
+###
+# Aufgabe 1 — List stores from in-memory tree
+GET {{host}}/api/tree/stores
+
+###
+# Aufgabe 2 — List employees
+GET {{host}}/api/employees
+
+###
+# Aufgabe 2 — List employees from in-memory tree
+GET {{host}}/api/tree/employees
+
+###
+# Aufgabe 3 — Timetable by store
+# Hamburg
+GET {{host}}/api/timetable/Hamburg
+
+###
+# Karlsruhe
+GET {{host}}/api/timetable/Karlsruhe
+
+###
+# Stuttgart
+GET {{host}}/api/timetable/Stuttgart
+
+###
+# München
+GET {{host}}/api/timetable/München
+
+###
+# Aufgabe 3 — Timetable by store
+# Hamburg
+GET {{host}}/api/tree/timetable/Hamburg
+
+###
+# Karlsruhe
+GET {{host}}/api/tree/timetable/Karlsruhe
+
+###
+# Stuttgart
+GET {{host}}/api/tree/timetable/Stuttgart
+
+###
+# München
+GET {{host}}/api/tree/timetable/München
+
+###
+# Aufgaben 1–3 combined — Organization overview
+GET {{host}}/api/organization/overview
+
+###
+# 1) Get employees to find a valid employeeId
+GET {{host}}/api/employees
+
+###
+# negative test — timetable for a non-existent store
+GET {{host}}/api/timetable/Atlantis
+
