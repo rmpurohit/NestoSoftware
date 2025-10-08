@@ -1,71 +1,78 @@
 /**
  * Application composition root responsible for dependency injection.
- * It wires domain ports to in-memory infrastructure adapters, builds the
- * application service layer, and boots the HTTP server adapter.
+ * It now supports switching between in-memory and MongoDB persistence
+ * via environment variables (see .env.example).
  */
 import "dotenv/config";
 import type { Server } from "http";
 import { startServer } from "./infrastructure/web/server.js";
+import { buildApplicationServices } from "./application/services.js";
+
+// In-memory adapters
 import { InMemoryStoreRepo } from "./infrastructure/repositories/InMemoryStoreRepo.js";
 import { InMemoryEmployeeRepo } from "./infrastructure/repositories/InMemoryEmployeeRepo.js";
 import { InMemoryShiftRepo } from "./infrastructure/repositories/InMemoryShiftRepo.js";
 import { InMemoryOrganizationStructureRepo } from "./infrastructure/repositories/InMemoryOrganizationStructureRepo.js";
-import { buildApplicationServices } from "./application/services.js";
 
-const registerGracefulShutdown = (server: Server) => {
+// Mongo + derived adapters
+import { connectMongo, closeMongo } from "./infrastructure/db/mongo.js";
+import { MongoOrganizationStructureRepo } from "./infrastructure/repositories/MongoOrganizationStructureRepo.js";
+import { MongoShiftRepo } from "./infrastructure/repositories/MongoShiftRepo.js";
+import { MongoStoreRepo } from "./infrastructure/repositories/MongoStoreRepo.js";
+import { MongoEmployeeRepo } from "./infrastructure/repositories/MongoEmployeeRepo.js";
+
+const registerGracefulShutdown = (server: Server, extra: { close?: () => Promise<void> } = {}) => {
   const signals: NodeJS.Signals[] = ["SIGINT", "SIGTERM"];
-  let shuttingDown = false;
-
-  const closeServer = () =>
-    new Promise<void>((resolve, reject) => {
-      server.close(error => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        resolve();
-      });
-    });
-
   const shutdown = async (signal: NodeJS.Signals) => {
-    if (shuttingDown) {
-      return;
+    console.log(`\nReceived ${signal}. Shutting down gracefully...`);
+    if (extra.close) {
+      try { await extra.close(); } catch {}
     }
-
-    shuttingDown = true;
-    console.log(`Received ${signal}. Shutting down gracefully...`);
-
-    try {
-      await closeServer();
-      console.log("Shutdown complete. Bye!");
-      process.exit(0);
-    } catch (error) {
-      console.error("Error during shutdown", error);
-      process.exit(1);
-    }
+    server.close(() => process.exit(0));
   };
-
-  signals.forEach(signal => {
-    process.on(signal, () => {
-      void shutdown(signal);
-    });
-  });
+  signals.forEach(s => process.on(s, () => void shutdown(s)));
 };
 
 (async () => {
   try {
-    const applicationServices = buildApplicationServices({
-      storeRepository: new InMemoryStoreRepo(),
-      employeeRepository: new InMemoryEmployeeRepo(),
-      shiftRepository: new InMemoryShiftRepo(),
-      organizationStructureRepository: new InMemoryOrganizationStructureRepo()
-    });
+    const mode = (process.env.PERSISTENCE || "memory").toLowerCase();
+
+    let applicationServices: ReturnType<typeof buildApplicationServices>;
+    let cleanup: (() => Promise<void>) | undefined;
+
+    if (mode === "mongo") {
+      const uri = process.env.MONGODB_URI || "mongodb://localhost:27017";
+      const dbName = process.env.MONGODB_DB || "bestfood";
+      const db = await connectMongo({ uri, dbName });
+
+      const organizationStructureRepository = new MongoOrganizationStructureRepo(db);
+      const storeRepository = new MongoStoreRepo(organizationStructureRepository);
+      const employeeRepository = new MongoEmployeeRepo(organizationStructureRepository);
+      const shiftRepository = new MongoShiftRepo(db);
+
+      applicationServices = buildApplicationServices({
+        storeRepository,
+        employeeRepository,
+        shiftRepository,
+        organizationStructureRepository
+      });
+
+      cleanup = async () => { await closeMongo(); };
+      console.log("Persistence: MongoDB");
+    } else {
+      applicationServices = buildApplicationServices({
+        storeRepository: new InMemoryStoreRepo(),
+        employeeRepository: new InMemoryEmployeeRepo(),
+        shiftRepository: new InMemoryShiftRepo(),
+        organizationStructureRepository: new InMemoryOrganizationStructureRepo()
+      });
+      console.log("Persistence: In-memory");
+    }
 
     const serverPort = Number(process.env.PORT) || 3000;
     const server = startServer(applicationServices, serverPort);
 
-    registerGracefulShutdown(server);
+    registerGracefulShutdown(server, { close: cleanup });
   } catch (error) {
     console.error("Failed to start application", error);
     process.exit(1);

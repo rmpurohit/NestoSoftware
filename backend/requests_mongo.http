@@ -1,0 +1,48 @@
+###############################################################################
+############################### MONGO DB ######################################
+###############################################################################
+
+@host_mongo = http://localhost:3001
+@json = application/json
+
+###
+# --- MONGO MODE (server on {{host_mongo}} with PERSISTENCE=mongo) ---
+
+###
+# List stores (derived from Mongo tree)
+GET {{host_mongo}}/api/stores
+
+###
+# List stores from tree
+GET {{host_mongo}}/api/tree/stores
+
+###
+# List employees (derived)
+GET {{host_mongo}}/api/employees
+
+###
+# List employees from tree
+GET {{host_mongo}}/api/tree/employees
+
+###
+# Timetable by store name (ID path)
+GET {{host_mongo}}/api/timetable/Hamburg
+
+###
+# Timetable by store name (tree path)
+GET {{host_mongo}}/api/tree/timetable/Hamburg
+
+###
+# Upsert a shift (same employeeId scheme works in both modes)
+POST {{host_mongo}}/api/shifts
+Content-Type: {{json}}
+
+{
+  "employeeId": "employee-claus",
+  "ranges": [ { "start": "09:00", "end": "17:00" } ],
+  "shiftId": "demo-mongo"
+}
+
+###
+# Flattened shift ranges
+GET {{host_mongo}}/api/shifts

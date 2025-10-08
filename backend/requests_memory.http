@@ -62,4 +62,3 @@ GET {{host}}/api/employees
 ###
 # negative test — timetable for a non-existent store
 GET {{host}}/api/timetable/Atlantis
-
