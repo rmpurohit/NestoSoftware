@@ -1,7 +1,7 @@
 /**
  * Application composition root responsible for dependency injection.
  * It now supports switching between in-memory and MongoDB persistence
- * via environment variables (see .env.example).
+ * via environment variables (see .env).
  */
 import "dotenv/config";
 import type { Server } from "http";
@@ -14,7 +14,7 @@ import { InMemoryEmployeeRepo } from "./infrastructure/repositories/InMemoryEmpl
 import { InMemoryShiftRepo } from "./infrastructure/repositories/InMemoryShiftRepo.js";
 import { InMemoryOrganizationStructureRepo } from "./infrastructure/repositories/InMemoryOrganizationStructureRepo.js";
 
-// Mongo + derived adapters
+// Mongo adapters
 import { connectMongo, closeMongo } from "./infrastructure/db/mongo.js";
 import { MongoOrganizationStructureRepo } from "./infrastructure/repositories/MongoOrganizationStructureRepo.js";
 import { MongoShiftRepo } from "./infrastructure/repositories/MongoShiftRepo.js";

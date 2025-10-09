@@ -15,7 +15,6 @@ export interface UpsertShiftsCommand {
 
 export const upsertShifts = (shiftRepository: ShiftRepo) =>
   async ({ shiftId = "", employeeId, ranges }: UpsertShiftsCommand) => {
-    // TODO: add business rules (overlap checks, etc.)
     const shiftToSave = new Shift(shiftId, employeeId, ranges);
     await shiftRepository.upsert(shiftToSave);
   };

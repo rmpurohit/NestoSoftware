@@ -35,6 +35,7 @@ const buildTimetableEntries = async (
     };
   };
 
+  // for each employee, find shifts
   return Promise.all(
     employeesInStore.map(employee =>
       buildTimetableEntryForEmployee(employee.id, employee.name)
