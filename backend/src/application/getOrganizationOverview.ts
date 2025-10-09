@@ -31,31 +31,37 @@ const collectStoreNodes = (
     return collectStoreNodes(node.children);
   });
 
-export const getOrganizationOverview = (
-  organizationStructureRepo: OrganizationStructureRepo,
-  shiftRepo: ShiftRepo
-) =>
-  async (): Promise<OrganizationOverview> => {
-    const headquarter = await organizationStructureRepo.getHeadquarter();
-    const storeNodes = collectStoreNodes(headquarter.children);
-    const storeNames = storeNodes.map(store => store.name);
-
-    const timetableUseCase = getTimetableByStoreFromTree(
-      organizationStructureRepo,
-      shiftRepo
-    );
-    const timetables = await Promise.all(
-      storeNames.map(storeName => timetableUseCase(storeName))
-    );
-
-    const employees = Array.from(
-      new Set(storeNodes.flatMap(store => store.employees))
-    ).sort((a, b) => a.localeCompare(b, "de"));
-
-    return {
-      headquarter,
-      stores: storeNames,
-      employees,
-      timetables
+  export const getOrganizationOverview = (
+    organizationStructureRepo: OrganizationStructureRepo,
+    shiftRepo: ShiftRepo
+  ) =>
+    async (): Promise<OrganizationOverview> => {
+      const headquarter: OrganizationHeadquarterNode =
+        await organizationStructureRepo.getHeadquarter();
+  
+      const storeNodes: OrganizationStoreNode[] =
+        collectStoreNodes(headquarter.children);
+  
+      const storeNames: string[] = storeNodes.map(store => store.name);
+  
+      const timetableUseCase = getTimetableByStoreFromTree(
+        organizationStructureRepo,
+        shiftRepo
+      );
+  
+      const timetables: Timetable[] = await Promise.all(
+        storeNames.map(storeName => timetableUseCase(storeName))
+      );
+  
+      const employees: string[] = Array.from(
+        new Set(storeNodes.flatMap(store => store.employees))
+      ).sort((a, b) => a.localeCompare(b, "de"));
+  
+      return {
+        headquarter,
+        stores: storeNames,
+        employees,
+        timetables
+      };
     };
-  };
+  
